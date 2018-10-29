@@ -93,7 +93,7 @@ for j in range(0, len(mat)):
 words_unk = []                # 未知語一覧
 
 for k in range(0, len(words)):
-  if cnt[k]<=3 :
+  if cnt[k]<=1 :
     words_unk.append(words[k])
     words[k] = 'UNK'
 
@@ -198,4 +198,5 @@ for k in range(0, 100) :
   x_validation[0, 0:maxlen-1] = x_validation[0, 1:maxlen]
   x_validation[0, maxlen-1] =  ret_word        # 1文字シフト
 
+print('予想')
 print(text_gen)

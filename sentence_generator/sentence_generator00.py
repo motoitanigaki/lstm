@@ -93,7 +93,7 @@ for j in range(0, len(mat)):
 words_unk = []                # 未知語一覧
 
 for k in range(0, len(words)):
-  if cnt[k]<=3 :
+  if cnt[k]<=1 :
     words_unk.append(words[k])
     words[k] = 'UNK'
 
