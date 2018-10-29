@@ -1,6 +1,6 @@
 from __future__ import print_function
 import collections
-import os
+import os, sys
 import tensorflow as tf
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Activation, Embedding, Dropout, TimeDistributed
@@ -16,16 +16,12 @@ import MeCab
     from here: http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz. Change the
     data_path variable below to your local exraction path"""
 
-# data_path = "simple-examples/data"
-run_opt = 1
 result_path = 'result'
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument('run_opt', type=int, default=1, help='An integer: 1 to train, 2 to test')
-# parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
-# args = parser.parse_args()
-# if data_path:
-#     data_path = data_path
+run_opt = 1 # 2にしたかったらコマンドライン引数に2を追加
+args = sys.argv
+if args[1]:
+    run_opt = args[1]
+    print(run_opt)
 
 def remove_values_from_list(the_list, val):
    return [value for value in the_list if value != val]
@@ -92,7 +88,7 @@ class KerasBatchGenerator(object):
         # this will track the progress of the batches sequentially through the
         # data set - once the data reaches the end of the data set it will reset
         # back to zero
-        self.current_idx = 0
+        self.current_idx = 0 # バッチの数
         # skip_step is the number of words which will be skipped before the next
         # batch is skimmed from the data set
         self.skip_step = skip_step
@@ -145,7 +141,7 @@ if run_opt == 1:
     #                     validation_steps=10)
     model.save(result_path + "final_model.hdf5")
 elif run_opt == 2:
-    model = load_model(result_path + "\model-40.hdf5")
+    model = load_model(result_path + "/model-50.hdf5")
     dummy_iters = 40
     example_training_generator = KerasBatchGenerator(train_data, num_steps, 1, vocabulary,
                                                      skip_step=1)

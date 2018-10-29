@@ -18,10 +18,10 @@ import argparse
 data_path = "simple-examples/data"
 run_opt = 1
 
-# parser = argparse.ArgumentParser()
-# parser.add_argument('run_opt', type=int, default=1, help='An integer: 1 to train, 2 to test')
-# parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
-# args = parser.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument('run_opt', type=int, default=1, help='An integer: 1 to train, 2 to test')
+parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
+args = parser.parse_args()
 if data_path:
     data_path = data_path
 
