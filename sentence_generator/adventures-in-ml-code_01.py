@@ -10,27 +10,38 @@ from keras.utils import to_categorical
 from keras.callbacks import ModelCheckpoint
 import numpy as np
 import argparse
+import MeCab
 
 """To run this code, you'll need to first download and extract the text dataset
     from here: http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz. Change the
     data_path variable below to your local exraction path"""
 
-data_path = "simple-examples/data"
+# data_path = "simple-examples/data"
+run_opt = 1
+result_path = 'result'
 
-parser = argparse.ArgumentParser()
-parser.add_argument('run_opt', type=int, default=1, help='An integer: 1 to train, 2 to test')
-parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
-args = parser.parse_args()
-if args.data_path:
-    data_path = args.data_path
+# parser = argparse.ArgumentParser()
+# parser.add_argument('run_opt', type=int, default=1, help='An integer: 1 to train, 2 to test')
+# parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
+# args = parser.parse_args()
+# if data_path:
+#     data_path = data_path
+
+def remove_values_from_list(the_list, val):
+   return [value for value in the_list if value != val]
 
 def read_words(filename):
-    with tf.gfile.GFile(filename, "r") as f:
-        return f.read().replace("\n", "<eos>").split()
+    f = open(filename)
+    text = f.read()
+    tagger = MeCab.Tagger("-Owakati")
+    text = tagger.parse(text)
+    text = list(map(str, text.split(' ')))
+    text = remove_values_from_list(text,"\u3000") 
+    return text
 
 def build_vocab(filename):
     """
-    サンプルテキスト内の単語を頻度順に並べて全てvocabraryに利用
+    サンプルテキスト内の単語を頻度順に並べて全てvocabularyに利用
     """
     data = read_words(filename)
 
@@ -51,9 +62,9 @@ def file_to_word_ids(filename, word_to_id):
 
 def load_data():
     # get the data paths
-    train_path = os.path.join(data_path, "ptb.train.txt")
-    valid_path = os.path.join(data_path, "ptb.valid.txt")
-    test_path = os.path.join(data_path, "ptb.test.txt")
+    train_path = os.path.join("akai_kabutomushi.txt")
+    valid_path = os.path.join("akai_heya.txt")
+    test_path = os.path.join("ichimaino_kippu.txt")
 
     # build the complete vocabulary, then convert text data to list of integers
     word_to_id = build_vocab(train_path)
@@ -101,8 +112,8 @@ class KerasBatchGenerator(object):
                 self.current_idx += self.skip_step
             yield x, y
 
-num_steps = 30
-batch_size = 20
+num_steps = 30 # modelに与える文章内の単語数
+batch_size = 20 # 1バッチあたりいくつの文章を与えるか
 train_data_generator = KerasBatchGenerator(train_data, num_steps, batch_size, vocabulary,
                                            skip_step=num_steps)
 valid_data_generator = KerasBatchGenerator(valid_data, num_steps, batch_size, vocabulary,
@@ -111,9 +122,9 @@ valid_data_generator = KerasBatchGenerator(valid_data, num_steps, batch_size, vo
 hidden_size = 500
 use_dropout=True
 model = Sequential()
-model.add(Embedding(vocabulary, hidden_size, input_length=num_steps))
+model.add(Embedding(vocabulary, hidden_size, input_length=num_steps)) # model.add(BatchNormalization(axis=-1)) があったほうが良いかも
 model.add(LSTM(hidden_size, return_sequences=True))
-model.add(LSTM(hidden_size, return_sequences=True))
+model.add(LSTM(hidden_size, return_sequences=True)) # model.add(BatchNormalization(axis=-1)) があったほうが良いかも
 if use_dropout:
     model.add(Dropout(0.5))
 model.add(TimeDistributed(Dense(vocabulary)))
@@ -123,18 +134,18 @@ optimizer = Adam()
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
 
 print(model.summary())
-checkpointer = ModelCheckpoint(filepath=data_path + '/model-{epoch:02d}.hdf5', verbose=1)
+checkpointer = ModelCheckpoint(filepath=result_path + '/model-{epoch:02d}.hdf5', verbose=1)
 num_epochs = 50
-if args.run_opt == 1:
+if run_opt == 1:
     model.fit_generator(train_data_generator.generate(), len(train_data)//(batch_size*num_steps), num_epochs,
                         validation_data=valid_data_generator.generate(),
                         validation_steps=len(valid_data)//(batch_size*num_steps), callbacks=[checkpointer])
     # model.fit_generator(train_data_generator.generate(), 2000, num_epochs,
     #                     validation_data=valid_data_generator.generate(),
     #                     validation_steps=10)
-    model.save(data_path + "final_model.hdf5")
-elif args.run_opt == 2:
-    model = load_model(data_path + "\model-40.hdf5")
+    model.save(result_path + "final_model.hdf5")
+elif run_opt == 2:
+    model = load_model(result_path + "\model-40.hdf5")
     dummy_iters = 40
     example_training_generator = KerasBatchGenerator(train_data, num_steps, 1, vocabulary,
                                                      skip_step=1)
@@ -169,4 +180,4 @@ elif args.run_opt == 2:
         true_print_out += reversed_dictionary[test_data[num_steps + dummy_iters + i]] + " "
         pred_print_out += reversed_dictionary[predict_word] + " "
     print(true_print_out)
-print(pred_print_out)
+    print(pred_print_out)
