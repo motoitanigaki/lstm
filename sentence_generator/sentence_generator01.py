@@ -63,12 +63,12 @@ class Prediction :
   
   # 学習
   def train(self, x_train, t_train, batch_size, epochs) :
-    early_stopping = EarlyStopping(patience=1, verbose=1)
+    early_stopping = EarlyStopping(monitor='loss', patience=1, verbose=1)
     print('#2', t_train.shape)
     model = self.create_model()
     print('#7')
     model.fit(x_train, t_train, batch_size=batch_size, epochs=epochs, verbose=1,
-          shuffle=True, callbacks=[early_stopping], validation_split=0.1)
+          shuffle=True, callbacks=[early_stopping], validation_split=0.0)
     return model
 
 ######### 辞書データ作成
@@ -129,29 +129,25 @@ for j in range(0, len(mat)):
 
 print(cnt.shape)
 
-len_seq = len(mat_urtext)-maxlen
 data = []
 target = []
+
+len_seq = len(mat_urtext)-maxlen
+
+
 for i in range(0, len_seq):
+  # 単語
   data.append(mat_urtext[i:i+maxlen, :])
   target.append(mat_urtext[i+maxlen, :])
 
-x = np.array(data).reshape(len(data), maxlen, 1)
-t = np.array(target).reshape(len(data), 1)
+x_train = np.array(data).reshape(len(data), maxlen, 1)
+t_train = np.array(target).reshape(len(data), 1)
 
-z = list(zip(x, t))
-nr.shuffle(z)                 # シャッフル
-x, t = zip(*z)
-x = np.array(x).reshape(len(data), maxlen, 1)
-t = np.array(t).reshape(len(data), 1)
-print(x.shape, t.shape)
+print(x_train.shape, t_train.shape)
 
-n_train = int(len(data)*0.9)                     # 訓練データ長
-x_train, x_validation = np.vsplit(x, [n_train])  # 元データを訓練用と評価用に分割
-t_train, t_validation = np.vsplit(t, [n_train])  # targetを訓練用と評価用に分割
 
 ########## メイン処理
-
+	
 vec_dim = 400 
 epochs = 100
 batch_size = 200
@@ -168,8 +164,7 @@ model = prediction.train(x_train, np_utils.to_categorical(t_train, output_dim), 
 
 model.save_weights(emb_param)          # 学習済みパラメーターセーブ
 
-row2 = x_validation.shape[0]
-score = model.evaluate(x_validation.reshape(row2, maxlen), 
-             np_utils.to_categorical(t_validation, output_dim), batch_size=batch_size)
+score = model.evaluate(x_train, 
+             np_utils.to_categorical(t_train, output_dim), batch_size=batch_size, verbose=1)
 
 print("score:", score)
