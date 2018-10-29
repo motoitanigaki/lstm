@@ -104,7 +104,7 @@ print('total words:', len(words))
 word_indices = dict((w, i) for i, w in enumerate(words))  # 単語をキーにインデックス検索
 indices_word = dict((i, w) for i, w in enumerate(words))  # インデックスをキーに単語を検索
 
-########## 訓練データ作成
+########## 文書生成用データ作成
 
 maxlen = 40                # 入力語数
 
@@ -133,22 +133,15 @@ data = []
 target = []
 len_seq = len(mat_urtext)-maxlen
 for i in range(0, len_seq):
+  # 単語
   data.append(mat_urtext[i:i+maxlen, :])
   target.append(mat_urtext[i+maxlen, :])
 
-x = np.array(data).reshape(len(data), maxlen, 1)
-t = np.array(target).reshape(len(data), 1)
+x_train = np.array(data).reshape(len(data), maxlen, 1)
+t_train = np.array(target).reshape(len(data), 1)
 
-z = list(zip(x, t))
-nr.shuffle(z)                 # シャッフル
-x, t = zip(*z)
-x = np.array(x).reshape(len(data), maxlen, 1)
-t = np.array(t).reshape(len(data), 1)
-print(x.shape, t.shape)
+print(x_train.shape, t_train.shape)
 
-n_train = int(len(data)*0.9)                     # 訓練データ長
-x_train, x_validation = np.vsplit(x, [n_train])  # 元データを訓練用と評価用に分割
-t_train, t_validation = np.vsplit(t, [n_train])  # targetを訓練用と評価用に分割
 
 ########## メイン処理
 
@@ -156,20 +149,53 @@ vec_dim = 400
 epochs = 100
 batch_size = 200
 input_dim = len(words)+1
+#unk_dim = len(words_unk)+1
 output_dim = input_dim
 n_hidden = int(vec_dim*1.5)  # 隠れ層の次元
 
-prediction = Prediction(maxlen, n_hidden, input_dim, vec_dim, output_dim)
+# 単語予測用
 
-emb_param = 'param_1.hdf5'               # パラメーターファイル名
-row = x_train.shape[0]
-x_train = x_train.reshape(row, maxlen)
-model = prediction.train(x_train, np_utils.to_categorical(t_train, output_dim), batch_size, epochs)
+prediction_words = Prediction(maxlen, n_hidden, input_dim, vec_dim, output_dim)
+model_words = prediction_words.create_model()
 
-model.save_weights(emb_param)          # 学習済みパラメーターセーブ
+# パラメーターロード
+print('単語分類用ニューラルネットパラメーターロード')
+model_words.load_weights('param_1.hdf5')
 
-row2 = x_validation.shape[0]
-score = model.evaluate(x_validation.reshape(row2, maxlen), 
-             np_utils.to_categorical(t_validation, output_dim), batch_size=batch_size)
+n_init = 6000
 
-print("score:", score)
+# 単語
+x_validation = x_train[n_init, :, :]
+x_validation = x_validation.T
+row = x_validation.shape[0]     # 評価データ数
+x_validation = x_validation.reshape(row, maxlen)
+
+text_gen = ''                 # 生成テキスト
+for i in range(0, maxlen) :
+  text_gen += indices_word[x_validation[0, i]]
+
+print(text_gen)
+
+# 正解データ
+text_correct = ''
+for j in range(0, 4) :
+  x_correct = x_train[n_init+j*maxlen, :, :]
+  x_correct = x_correct.T
+  x_correct = x_correct.reshape(row, maxlen)
+  for i in range(0, maxlen) :
+    text_correct += indices_word[x_correct[0, i]]
+
+print('正解')
+print(text_correct)
+
+# 文生成
+for k in range(0, 100) :
+  ret = model_words.predict(x_validation, batch_size=batch_size, verbose=0)
+  ret_word = ret.argmax(1)[0] 
+
+  #print(indices_word[ret_word])
+  text_gen += indices_word[ret_word]          # 生成文字を追加
+  x_validation[0, 0:maxlen-1] = x_validation[0, 1:maxlen]
+  x_validation[0, maxlen-1] =  ret_word        # 1文字シフト
+
+print(text_gen)
