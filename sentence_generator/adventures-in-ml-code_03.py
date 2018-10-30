@@ -1,4 +1,3 @@
-# 江戸川乱歩の作品で試すのはこのファイルが最後
 from __future__ import print_function
 import collections
 import os, sys
@@ -60,8 +59,8 @@ def file_to_word_ids(filename, word_to_id):
 
 def load_data():
     # get the data paths
-    train_path = os.path.join("akai_kabutomushi.txt")
-    valid_path = os.path.join("akai_heya.txt")
+    train_path = os.path.join("text_all_articles_train.txt")
+    valid_path = os.path.join("text_all_articles_valid.txt")
     test_path = os.path.join("ichimaino_kippu.txt")
 
     # build the complete vocabulary, then convert text data to list of integers
@@ -133,7 +132,7 @@ model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categ
 
 print(model.summary())
 checkpointer = ModelCheckpoint(filepath=result_path + '/model-{epoch:02d}.hdf5', verbose=1)
-num_epochs = 50
+num_epochs = 100
 if run_opt == 1:
     model.fit_generator(train_data_generator.generate(), len(train_data)//(batch_size*num_steps), num_epochs,
                         validation_data=valid_data_generator.generate(),
