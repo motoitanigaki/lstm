@@ -79,6 +79,30 @@ def load_data():
 
 train_data, valid_data, test_data, vocabulary, reversed_dictionary, word_to_id = load_data()
 
+def generate_sentence(original_text, word_to_id):
+    tagger = MeCab.Tagger("-Owakati")
+    text = tagger.parse(original_text)
+    text = list(map(str, text.split(' ')))
+    text = remove_values_from_list(text,"\n") 
+    print(text)
+    text = [word_to_id[word] for word in text if word in word_to_id]
+    generated_sentence = ""
+    text_len = len(text)
+    for i in range(num_steps):
+        try:
+            text[i]
+        except:
+            text.append(0)
+    text_np = np.array([text])
+    predicted_sentence = original_text
+    for i in range(text_len - 1,num_steps):
+        prediction = model.predict(text_np)
+        predict_word = np.argmax(prediction[:, num_steps - 1, :]) 
+        text_np[0][i] = predict_word
+        predicted_sentence += reversed_dictionary[predict_word]
+    print(predicted_sentence)
+    return text_np
+    
 class KerasBatchGenerator(object):
 
     def __init__(self, data, num_steps, batch_size, vocabulary, skip_step=5):
@@ -141,6 +165,7 @@ if run_opt == 1:
     #                     validation_data=valid_data_generator.generate(),
     #                     validation_steps=10)
     model.save(result_path + "final_model.hdf5")
+    generate_sentence("人工", word_to_id)
 elif run_opt == 2:
     model = load_model(result_path + "/model-50.hdf5")
     dummy_iters = 40
@@ -179,27 +204,3 @@ elif run_opt == 2:
         pred_print_out += reversed_dictionary[predict_word] + " "
     print(true_print_out)
     print(pred_print_out)
-
-def generate_sentence(original_text, word_to_id):
-    tagger = MeCab.Tagger("-Owakati")
-    text = tagger.parse(original_text)
-    text = list(map(str, text.split(' ')))
-    text = remove_values_from_list(text,"\n") 
-    print(text)
-    text = [word_to_id[word] for word in text if word in word_to_id]
-    generated_sentence = ""
-    text_len = len(text)
-    for i in range(num_steps):
-        try:
-            text[i]
-        except:
-            text.append(0)
-    text_np = np.array([text])
-    predicted_sentence = original_text
-    for i in range(text_len - 1,num_steps):
-        prediction = model.predict(text_np)
-        predict_word = np.argmax(prediction[:, num_steps - 1, :]) 
-        text_np[0][i] = predict_word
-        predicted_sentence += reversed_dictionary[predict_word]
-    print(predicted_sentence)
-    return text_np
